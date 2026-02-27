@@ -11,7 +11,7 @@ Yes, another useless application for managing tasks just to implement a CRUD to 
 - **DB connector** — psycopg2-binary + raw SQL (no ORM)
 - **Config** — python-dotenv (`.env` file)
 - **Frontend** — Jinja2 templates + Tailwind CSS CDN (dark mode)
-- **Email** — Flask-Mail via Gmail SMTP (free)
+- **Email** — Flask-Mail via Gmail SMTP — HTML email with embedded logo
 
 ---
 
@@ -19,20 +19,24 @@ Yes, another useless application for managing tasks just to implement a CRUD to 
 
 ```
 TasksManagerApp/
-├── main.py                  # Entrypoint
-├── docker-compose.yml       # PostgreSQL service
-├── .env                     # Local credentials (DO NOT commit)
-├── .env.example             # Template for .env
-├── pyproject.toml           # Dependencies
+├── main.py                      # Entrypoint
+├── docker-compose.yml           # PostgreSQL service
+├── .env                         # Local credentials (DO NOT commit)
+├── .env.example                 # Template for .env
+├── pyproject.toml               # Dependencies
 └── src/
-    ├── app.py               # Flask app factory (create_app)
-    ├── db.py                # psycopg2 helpers: get_db, close_db, init_db
-    ├── mail.py              # Flask-Mail setup + send_task_created()
+    ├── app.py                   # Flask app factory (create_app)
+    ├── db.py                    # psycopg2 helpers: get_db, close_db, init_db
+    ├── mail.py                  # Flask-Mail setup + send_task_created()
     ├── blueprints/
-    │   ├── tasks.py         # /tasks CRUD routes + /tasks/archived
-    │   └── reminders.py     # /reminders list route
+    │   ├── tasks.py             # /tasks CRUD routes + /tasks/archived
+    │   ├── reminders.py         # /reminders list route
+    │   └── subscribers.py       # /subscribers CRUD routes
     ├── sql/
-    │   └── schema.sql       # Idempotent schema + updated_at trigger
+    │   └── schema.sql           # Idempotent schema + updated_at triggers
+    ├── static/
+    │   └── assets/img/
+    │       └── logo_raw.png     # Logo embedded in notification emails
     └── templates/
         ├── base.html
         ├── tasks/
@@ -40,8 +44,13 @@ TasksManagerApp/
         │   ├── archived.html
         │   ├── detail.html
         │   └── form.html
-        └── reminders/
-            └── list.html
+        ├── reminders/
+        │   └── list.html
+        ├── subscribers/
+        │   ├── list.html
+        │   └── form.html
+        └── errors/
+            └── db_down.html     # 503 page when PostgreSQL is unreachable
 ```
 
 ---
@@ -101,7 +110,7 @@ The database schema initializes automatically on startup. Open `http://localhost
 | GET | `/` | Redirects to `/tasks` |
 | GET | `/tasks` | List active tasks |
 | GET | `/tasks/new` | New task form |
-| POST | `/tasks/new` | Create task (sends email if configured) |
+| POST | `/tasks/new` | Create task + send email to active subscribers |
 | GET | `/tasks/<id>` | Task detail |
 | GET | `/tasks/<id>/edit` | Edit form |
 | POST | `/tasks/<id>/edit` | Update task |
@@ -121,7 +130,11 @@ The database schema initializes automatically on startup. Open `http://localhost
 
 ## Email Notifications
 
-An email is sent to all **active subscribers** every time a task is created. Recipients are managed from the `/subscribers` interface — no hardcoded addresses needed. This uses **Flask-Mail** over Gmail SMTP (free).
+When a task is created, an HTML email is sent to all **active subscribers**. The email includes the app logo (embedded inline), task title, status, description, and reminder if set. It also includes a plain-text fallback for clients that don't render HTML.
+
+Recipients are managed entirely from the `/subscribers` interface — no hardcoded addresses needed.
+
+This uses **Flask-Mail** over Gmail SMTP (free).
 
 **Gmail setup:**
 1. Enable 2-Step Verification on your Google Account
@@ -166,11 +179,12 @@ Both tables have an `updated_at` trigger that updates the timestamp automaticall
 
 ## Key Design Decisions
 
-- **Archive over delete** — tasks are never deleted; `archived = TRUE` hides them from the main list. They can be restored from the Archived panel.
+- **Archive over delete** — tasks are never deleted; `archived = TRUE` hides them from the main list. Restorable from the Archived panel.
 - **No ORM** — raw SQL via psycopg2 with `RealDictCursor` (rows come back as dicts).
-- **Schema auto-init** — `init_db()` runs `schema.sql` on every startup; safe because the schema is idempotent.
-- **Blueprints** — `tasks`, `reminders`, and `subscribers` are registered as Flask Blueprints for modularity.
+- **Schema auto-init** — `init_db()` runs `schema.sql` on every startup; safe because the schema is idempotent. If the DB is unreachable at startup, logs a warning and continues.
+- **DB error handling** — `psycopg2.OperationalError` is caught globally and renders a friendly 503 page instead of crashing.
 - **Subscribers over hardcoded recipients** — notification targets are stored in the `subscribers` table and managed from the UI. No email addresses in `.env`.
+- **HTML email with embedded logo** — `send_task_created()` sends a styled HTML email with the app logo attached inline (CID), plus a plain-text fallback.
 - **Email is optional** — if `MAIL_USERNAME` is missing from `.env`, `send_task_created()` returns early without errors.
 
 ---
