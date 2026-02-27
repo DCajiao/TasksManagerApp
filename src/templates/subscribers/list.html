@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+{% block title %}Subscribers — TaskFlow{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto">
+
+    <!-- Header -->
+    <div class="flex items-center justify-between mb-8">
+        <div>
+            <h1 class="text-2xl font-bold text-slate-100 tracking-tight">Subscribers</h1>
+            <p class="text-sm mt-0.5" style="color:#64748b;">
+                {{ subscribers|length }} subscriber{{ 's' if subscribers|length != 1 else '' }}
+                · {{ subscribers|selectattr('active')|list|length }} active
+            </p>
+        </div>
+        <a href="/subscribers/new"
+           class="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-white
+                  transition-all duration-150 hover:opacity-90 active:scale-95"
+           style="background:#6366f1;">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/>
+            </svg>
+            Add Subscriber
+        </a>
+    </div>
+
+    {% if not subscribers %}
+    <!-- Empty state -->
+    <div class="flex flex-col items-center justify-center py-24 rounded-xl"
+         style="background:#1a1d27; border:1px solid rgba(99,102,241,.12);">
+        <div class="w-16 h-16 rounded-full flex items-center justify-center mb-4"
+             style="background:rgba(99,102,241,.1);">
+            <svg class="w-8 h-8" style="color:#6366f1;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                      d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+            </svg>
+        </div>
+        <h3 class="text-base font-semibold text-slate-300 mb-1">No subscribers yet</h3>
+        <p class="text-sm mb-6" style="color:#64748b;">Add subscribers to receive email notifications when a task is created.</p>
+        <a href="/subscribers/new"
+           class="px-4 py-2 rounded-lg text-sm font-medium"
+           style="background:rgba(99,102,241,.15); color:#a5b4fc; border:1px solid rgba(99,102,241,.3);">
+            + Add Subscriber
+        </a>
+    </div>
+
+    {% else %}
+    <div class="rounded-xl overflow-hidden"
+         style="background:#1a1d27; border:1px solid rgba(255,255,255,.06);">
+
+        <!-- Table header -->
+        <div class="grid grid-cols-[1fr_1.5fr_auto_auto] gap-4 px-5 py-3 text-xs font-semibold uppercase tracking-wider"
+             style="color:#475569; border-bottom:1px solid rgba(255,255,255,.05);">
+            <span>Name</span>
+            <span>Email</span>
+            <span>Status</span>
+            <span></span>
+        </div>
+
+        {% for sub in subscribers %}
+        <div class="grid grid-cols-[1fr_1.5fr_auto_auto] gap-4 items-center px-5 py-3.5 group transition-colors duration-100
+                    {% if not loop.last %}border-b{% endif %}"
+             style="{% if not loop.last %}border-color:rgba(255,255,255,.04);{% endif %}">
+
+            <!-- Name -->
+            <span class="text-sm font-medium truncate
+                         {% if not sub.active %}opacity-40{% endif %}"
+                  style="color:#e2e8f0;">
+                {{ sub.name }}
+            </span>
+
+            <!-- Email -->
+            <span class="text-sm truncate {% if not sub.active %}opacity-40{% endif %}"
+                  style="color:#64748b;">
+                {{ sub.email }}
+            </span>
+
+            <!-- Status badge -->
+            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold"
+                  style="{% if sub.active %}background:rgba(34,197,94,.12);color:#4ade80;border:1px solid rgba(34,197,94,.25);
+                         {% else %}background:rgba(100,116,139,.1);color:#64748b;border:1px solid rgba(100,116,139,.2);{% endif %}">
+                <span class="w-1.5 h-1.5 rounded-full {% if sub.active %}animate-pulse{% endif %}"
+                      style="background:{% if sub.active %}#22c55e{% else %}#475569{% endif %};"></span>
+                {{ 'Active' if sub.active else 'Inactive' }}
+            </span>
+
+            <!-- Actions -->
+            <div class="flex items-center gap-1.5 justify-end opacity-0 group-hover:opacity-100 transition-opacity duration-150">
+                <a href="/subscribers/{{ sub.id }}/edit"
+                   class="px-2.5 py-1 rounded text-xs font-medium transition-all duration-150"
+                   style="color:#a5b4fc; background:rgba(99,102,241,.12); border:1px solid rgba(99,102,241,.2);">
+                    Edit
+                </a>
+                <form method="POST" action="/subscribers/{{ sub.id }}/toggle">
+                    <button type="submit"
+                            class="px-2.5 py-1 rounded text-xs font-medium transition-all duration-150"
+                            style="{% if sub.active %}color:#f87171;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);
+                                   {% else %}color:#4ade80;background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.2);{% endif %}">
+                        {{ 'Deactivate' if sub.active else 'Activate' }}
+                    </button>
+                </form>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+</div>
+{% endblock %}

@@ -23,3 +23,18 @@ CREATE TRIGGER tasks_updated_at
     BEFORE UPDATE ON tasks
     FOR EACH ROW
     EXECUTE FUNCTION update_updated_at();
+
+CREATE TABLE IF NOT EXISTS subscribers (
+    id         SERIAL PRIMARY KEY,
+    name       VARCHAR(255) NOT NULL,
+    email      VARCHAR(255) NOT NULL UNIQUE,
+    active     BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+DROP TRIGGER IF EXISTS subscribers_updated_at ON subscribers;
+CREATE TRIGGER subscribers_updated_at
+    BEFORE UPDATE ON subscribers
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at();

@@ -17,9 +17,18 @@ def init_mail(app):
 
 
 def send_task_created(task):
-    recipient = os.getenv("NOTIFICATION_EMAIL")
-    if not recipient or not os.getenv("MAIL_USERNAME"):
-        return  # Email not configured — silently skip
+    if not os.getenv("MAIL_USERNAME"):
+        return  # SMTP not configured — silently skip
+
+    from src.db import get_db
+    db = get_db()
+    with db.cursor() as cur:
+        cur.execute("SELECT email FROM subscribers WHERE active = TRUE")
+        rows = cur.fetchall()
+
+    recipients = [row["email"] for row in rows]
+    if not recipients:
+        return
 
     reminder_line = ""
     if task.get("reminder_at"):
@@ -41,11 +50,10 @@ def send_task_created(task):
 
     msg = Message(
         subject=f"[TaskFlow] New task: {task['title']}",
-        recipients=[recipient],
+        recipients=recipients,
         body=body,
     )
     try:
         mail.send(msg)
     except Exception as e:
-        # Don't crash the request if email fails
         print(f"[mail] Failed to send email: {e}")

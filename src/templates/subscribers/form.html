@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block title %}{% if subscriber %}Edit Subscriber{% else %}New Subscriber{% endif %} — TaskFlow{% endblock %}
+
+{% block content %}
+<div class="max-w-md mx-auto">
+
+    <!-- Back -->
+    <a href="/subscribers"
+       class="inline-flex items-center gap-2 text-sm mb-6 transition-colors duration-150 hover:text-slate-200"
+       style="color:#64748b;">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+        </svg>
+        Back to Subscribers
+    </a>
+
+    <div class="rounded-xl p-8" style="background:#1a1d27; border:1px solid rgba(255,255,255,.06);">
+        <h1 class="text-xl font-bold text-slate-100 mb-6">
+            {% if subscriber %}Edit Subscriber{% else %}New Subscriber{% endif %}
+        </h1>
+
+        <form method="POST"
+              action="{{ '/subscribers/' ~ subscriber.id ~ '/edit' if subscriber else '/subscribers/new' }}"
+              class="flex flex-col gap-5">
+
+            <div>
+                <label for="name"
+                       class="block text-xs font-semibold uppercase tracking-wider mb-2"
+                       style="color:#64748b;">
+                    Name <span style="color:#f87171;">*</span>
+                </label>
+                <input type="text"
+                       id="name"
+                       name="name"
+                       required
+                       value="{{ subscriber.name if subscriber else '' }}"
+                       placeholder="John Doe"
+                       class="w-full px-3.5 py-2.5 rounded-lg text-sm text-slate-100 placeholder-slate-600
+                              outline-none transition-all duration-150 focus:ring-2"
+                       style="background:#0f1117; border:1px solid rgba(255,255,255,.08); --tw-ring-color:rgba(99,102,241,.4);">
+            </div>
+
+            <div>
+                <label for="email"
+                       class="block text-xs font-semibold uppercase tracking-wider mb-2"
+                       style="color:#64748b;">
+                    Email <span style="color:#f87171;">*</span>
+                </label>
+                <input type="email"
+                       id="email"
+                       name="email"
+                       required
+                       value="{{ subscriber.email if subscriber else '' }}"
+                       placeholder="john@example.com"
+                       class="w-full px-3.5 py-2.5 rounded-lg text-sm text-slate-100 placeholder-slate-600
+                              outline-none transition-all duration-150 focus:ring-2"
+                       style="background:#0f1117; border:1px solid rgba(255,255,255,.08); --tw-ring-color:rgba(99,102,241,.4);">
+            </div>
+
+            <div class="flex items-center gap-3 pt-2">
+                <button type="submit"
+                        class="px-5 py-2.5 rounded-lg text-sm font-semibold text-white
+                               transition-all duration-150 hover:opacity-90 active:scale-95"
+                        style="background:#6366f1;">
+                    {% if subscriber %}Save Changes{% else %}Add Subscriber{% endif %}
+                </button>
+                <a href="/subscribers"
+                   class="px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 hover:text-slate-200"
+                   style="color:#64748b;">
+                    Cancel
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

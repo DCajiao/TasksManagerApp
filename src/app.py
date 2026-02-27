@@ -18,9 +18,11 @@ def create_app():
 
     from src.blueprints.tasks import tasks_bp
     from src.blueprints.reminders import reminders_bp
+    from src.blueprints.subscribers import subscribers_bp
 
     app.register_blueprint(tasks_bp, url_prefix="/tasks")
     app.register_blueprint(reminders_bp, url_prefix="/reminders")
+    app.register_blueprint(subscribers_bp, url_prefix="/subscribers")
 
     @app.route("/")
     def index():
