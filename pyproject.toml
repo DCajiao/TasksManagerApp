@@ -1,0 +1,11 @@
+[project]
+name = "tasksmanagerapp"
+version = "0.1.0"
+description = "Yeap, another useless application for managing tasks just to implement a CRUD to a database."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "flask>=3.0.0",
+    "psycopg2-binary>=2.9.9",
+    "python-dotenv>=1.0.0",
+]

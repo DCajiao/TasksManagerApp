@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+{% block title %}{% if task %}Edit Task{% else %}New Task{% endif %} — TaskFlow{% endblock %}
+
+{% block content %}
+<div class="max-w-xl mx-auto">
+
+    <!-- Back -->
+    <a href="{{ '/tasks/' ~ task.id if task else '/tasks' }}"
+       class="inline-flex items-center gap-2 text-sm mb-6 transition-colors duration-150 hover:text-slate-200"
+       style="color:#64748b;">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+        </svg>
+        {% if task %}Back to Task{% else %}Back to Tasks{% endif %}
+    </a>
+
+    <div class="rounded-xl p-8" style="background:#1a1d27; border:1px solid rgba(255,255,255,.06);">
+        <h1 class="text-xl font-bold text-slate-100 mb-6">
+            {% if task %}Edit Task{% else %}New Task{% endif %}
+        </h1>
+
+        <form method="POST"
+              action="{{ '/tasks/' ~ task.id ~ '/edit' if task else '/tasks/new' }}"
+              class="flex flex-col gap-5">
+
+            <!-- Title -->
+            <div>
+                <label for="title"
+                       class="block text-xs font-semibold uppercase tracking-wider mb-2"
+                       style="color:#64748b;">
+                    Title <span style="color:#f87171;">*</span>
+                </label>
+                <input type="text"
+                       id="title"
+                       name="title"
+                       required
+                       value="{{ task.title if task else '' }}"
+                       placeholder="What needs to be done?"
+                       class="w-full px-3.5 py-2.5 rounded-lg text-sm text-slate-100 placeholder-slate-600
+                              outline-none transition-all duration-150 focus:ring-2"
+                       style="background:#0f1117; border:1px solid rgba(255,255,255,.08); --tw-ring-color:rgba(99,102,241,.4);">
+            </div>
+
+            <!-- Body -->
+            <div>
+                <label for="body"
+                       class="block text-xs font-semibold uppercase tracking-wider mb-2"
+                       style="color:#64748b;">
+                    Description
+                </label>
+                <textarea id="body"
+                          name="body"
+                          rows="4"
+                          placeholder="Add more details…"
+                          class="w-full px-3.5 py-2.5 rounded-lg text-sm text-slate-100 placeholder-slate-600
+                                 outline-none transition-all duration-150 focus:ring-2 resize-none"
+                          style="background:#0f1117; border:1px solid rgba(255,255,255,.08); --tw-ring-color:rgba(99,102,241,.4);">{{ task.body if task and task.body else '' }}</textarea>
+            </div>
+
+            <!-- Reminder section -->
+            <div class="pt-4" style="border-top:1px solid rgba(255,255,255,.05);">
+                <p class="text-xs font-semibold uppercase tracking-wider mb-4" style="color:#64748b;">
+                    Reminder <span class="normal-case font-normal" style="color:#475569;">(optional)</span>
+                </p>
+                <div class="flex flex-col gap-4">
+                    <div>
+                        <label for="reminder_at"
+                               class="block text-xs font-medium mb-1.5"
+                               style="color:#94a3b8;">Date & Time</label>
+                        <input type="datetime-local"
+                               id="reminder_at"
+                               name="reminder_at"
+                               value="{{ task.reminder_at.strftime('%Y-%m-%dT%H:%M') if task and task.reminder_at else '' }}"
+                               class="w-full px-3.5 py-2.5 rounded-lg text-sm text-slate-100
+                                      outline-none transition-all duration-150 focus:ring-2"
+                               style="background:#0f1117; border:1px solid rgba(255,255,255,.08); --tw-ring-color:rgba(99,102,241,.4);">
+                    </div>
+                    <div>
+                        <label for="reminder_note"
+                               class="block text-xs font-medium mb-1.5"
+                               style="color:#94a3b8;">Note</label>
+                        <input type="text"
+                               id="reminder_note"
+                               name="reminder_note"
+                               value="{{ task.reminder_note if task and task.reminder_note else '' }}"
+                               placeholder="Short reminder note…"
+                               class="w-full px-3.5 py-2.5 rounded-lg text-sm text-slate-100 placeholder-slate-600
+                                      outline-none transition-all duration-150 focus:ring-2"
+                               style="background:#0f1117; border:1px solid rgba(255,255,255,.08); --tw-ring-color:rgba(99,102,241,.4);">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Submit -->
+            <div class="flex items-center gap-3 pt-2">
+                <button type="submit"
+                        class="px-5 py-2.5 rounded-lg text-sm font-semibold text-white
+                               transition-all duration-150 hover:opacity-90 active:scale-95"
+                        style="background:#6366f1;">
+                    {% if task %}Save Changes{% else %}Create Task{% endif %}
+                </button>
+                <a href="{{ '/tasks/' ~ task.id if task else '/tasks' }}"
+                   class="px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 hover:text-slate-200"
+                   style="color:#64748b;">
+                    Cancel
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
