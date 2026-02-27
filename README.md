@@ -76,7 +76,6 @@ MAIL_USE_TLS=true
 MAIL_USERNAME=your@gmail.com
 MAIL_PASSWORD=your-app-password
 MAIL_DEFAULT_SENDER=your@gmail.com
-NOTIFICATION_EMAIL=recipient@example.com
 ```
 
 ### 3. Start PostgreSQL
@@ -111,12 +110,18 @@ The database schema initializes automatically on startup. Open `http://localhost
 | GET | `/tasks/archived` | List archived tasks |
 | POST | `/tasks/<id>/unarchive` | Restore archived task |
 | GET | `/reminders` | List tasks with reminders |
+| GET | `/subscribers` | List subscribers |
+| GET | `/subscribers/new` | New subscriber form |
+| POST | `/subscribers/new` | Create subscriber |
+| GET | `/subscribers/<id>/edit` | Edit subscriber |
+| POST | `/subscribers/<id>/edit` | Update subscriber |
+| POST | `/subscribers/<id>/toggle` | Activate / deactivate subscriber |
 
 ---
 
 ## Email Notifications
 
-An email is sent to `NOTIFICATION_EMAIL` every time a task is created. This uses **Flask-Mail** over Gmail SMTP (free).
+An email is sent to all **active subscribers** every time a task is created. Recipients are managed from the `/subscribers` interface — no hardcoded addresses needed. This uses **Flask-Mail** over Gmail SMTP (free).
 
 **Gmail setup:**
 1. Enable 2-Step Verification on your Google Account
@@ -124,7 +129,7 @@ An email is sent to `NOTIFICATION_EMAIL` every time a task is created. This uses
 3. Create an App Password for "Mail"
 4. Use that 16-character password as `MAIL_PASSWORD` in `.env`
 
-> Email is **optional** — if `MAIL_USERNAME` or `NOTIFICATION_EMAIL` are empty, notifications are silently skipped and the app works normally.
+> Email is **optional** — if `MAIL_USERNAME` is empty, notifications are silently skipped and the app works normally.
 
 ---
 
@@ -144,7 +149,18 @@ CREATE TABLE IF NOT EXISTS tasks (
 );
 ```
 
-An `updated_at` trigger updates the timestamp automatically on every row update.
+```sql
+CREATE TABLE IF NOT EXISTS subscribers (
+    id         SERIAL PRIMARY KEY,
+    name       VARCHAR(255) NOT NULL,
+    email      VARCHAR(255) NOT NULL UNIQUE,
+    active     BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+```
+
+Both tables have an `updated_at` trigger that updates the timestamp automatically on every row update.
 
 ---
 
@@ -153,8 +169,9 @@ An `updated_at` trigger updates the timestamp automatically on every row update.
 - **Archive over delete** — tasks are never deleted; `archived = TRUE` hides them from the main list. They can be restored from the Archived panel.
 - **No ORM** — raw SQL via psycopg2 with `RealDictCursor` (rows come back as dicts).
 - **Schema auto-init** — `init_db()` runs `schema.sql` on every startup; safe because the schema is idempotent.
-- **Blueprints** — `tasks` and `reminders` are registered as Flask Blueprints for modularity.
-- **Email is optional** — if mail vars are missing from `.env`, `send_task_created()` returns early without errors.
+- **Blueprints** — `tasks`, `reminders`, and `subscribers` are registered as Flask Blueprints for modularity.
+- **Subscribers over hardcoded recipients** — notification targets are stored in the `subscribers` table and managed from the UI. No email addresses in `.env`.
+- **Email is optional** — if `MAIL_USERNAME` is missing from `.env`, `send_task_created()` returns early without errors.
 
 ---
 
