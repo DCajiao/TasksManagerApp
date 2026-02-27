@@ -1,5 +1,6 @@
 import os
-from flask import Flask
+import psycopg2
+from flask import Flask, render_template
 from dotenv import load_dotenv
 from src.db import close_db, init_db
 from src.mail import init_mail
@@ -25,6 +26,10 @@ def create_app():
     def index():
         from flask import redirect, url_for
         return redirect(url_for("tasks.list_tasks"))
+
+    @app.errorhandler(psycopg2.OperationalError)
+    def handle_db_down(e):
+        return render_template("errors/db_down.html"), 503
 
     init_db(app)
 

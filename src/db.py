@@ -24,9 +24,13 @@ def close_db(e=None):
 def init_db(app):
     schema_path = os.path.join(os.path.dirname(__file__), "sql", "schema.sql")
     with app.app_context():
-        db = get_db()
-        with open(schema_path) as f:
-            with db.cursor() as cur:
-                cur.execute(f.read())
-        db.commit()
-        close_db()
+        try:
+            db = get_db()
+            with open(schema_path) as f:
+                with db.cursor() as cur:
+                    cur.execute(f.read())
+            db.commit()
+            close_db()
+        except psycopg2.OperationalError as e:
+            print(f"[db] Warning: could not initialize schema (DB unreachable): {e}")
+            close_db()
