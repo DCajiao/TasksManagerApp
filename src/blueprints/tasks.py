@@ -1,5 +1,6 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash
 from src.db import get_db
+from src.mail import send_task_created
 
 tasks_bp = Blueprint("tasks", __name__)
 
@@ -48,6 +49,12 @@ def new_task():
             )
             task_id = cur.fetchone()["id"]
         db.commit()
+
+        with db.cursor() as cur:
+            cur.execute("SELECT * FROM tasks WHERE id = %s", (task_id,))
+            new_task = cur.fetchone()
+        send_task_created(new_task)
+
         flash("Task created.", "success")
         return redirect(url_for("tasks.detail", task_id=task_id))
 
@@ -108,3 +115,24 @@ def archive_task(task_id):
     db.commit()
     flash("Task archived.", "success")
     return redirect(url_for("tasks.list_tasks"))
+
+
+@tasks_bp.route("/archived")
+def archived_tasks():
+    db = get_db()
+    with db.cursor() as cur:
+        cur.execute(
+            "SELECT * FROM tasks WHERE archived = TRUE ORDER BY updated_at DESC"
+        )
+        tasks = cur.fetchall()
+    return render_template("tasks/archived.html", tasks=tasks)
+
+
+@tasks_bp.route("/<int:task_id>/unarchive", methods=["POST"])
+def unarchive_task(task_id):
+    db = get_db()
+    with db.cursor() as cur:
+        cur.execute("UPDATE tasks SET archived = FALSE WHERE id = %s", (task_id,))
+    db.commit()
+    flash("Task restored.", "success")
+    return redirect(url_for("tasks.archived_tasks"))

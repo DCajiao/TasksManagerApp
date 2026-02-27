@@ -51,15 +51,31 @@
             <p class="px-3 mb-2 text-xs font-semibold uppercase tracking-widest"
                style="color:#475569;">Menu</p>
 
+            {% set on_tasks = request.path.startswith('/tasks') and not request.path.startswith('/tasks/archived') %}
+            {% set on_archived = request.path.startswith('/tasks/archived') %}
+
             <a href="/tasks"
                class="flex items-center gap-3 px-3 py-2.5 rounded-lg mb-1 text-sm font-medium transition-all duration-150"
-               style="{% if request.path.startswith('/tasks') %}background:rgba(99,102,241,.15);color:#a5b4fc;{% else %}color:#94a3b8;{% endif %}">
+               style="{% if on_tasks %}background:rgba(99,102,241,.15);color:#a5b4fc;{% else %}color:#94a3b8;{% endif %}">
                 <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                           d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
                 </svg>
                 Tasks
-                {% if request.path.startswith('/tasks') %}
+                {% if on_tasks %}
+                <span class="ml-auto w-1.5 h-1.5 rounded-full" style="background:#6366f1;"></span>
+                {% endif %}
+            </a>
+
+            <a href="/tasks/archived"
+               class="flex items-center gap-3 px-3 py-2.5 rounded-lg mb-1 text-sm font-medium transition-all duration-150"
+               style="{% if on_archived %}background:rgba(99,102,241,.15);color:#a5b4fc;{% else %}color:#94a3b8;{% endif %}">
+                <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"/>
+                </svg>
+                Archived
+                {% if on_archived %}
                 <span class="ml-auto w-1.5 h-1.5 rounded-full" style="background:#6366f1;"></span>
                 {% endif %}
             </a>
