@@ -33,6 +33,9 @@ CREATE TABLE IF NOT EXISTS subscribers (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+-- Add AI recommendation column if it doesn't exist yet (idempotent migration)
+ALTER TABLE tasks ADD COLUMN IF NOT EXISTS ai_recommendation TEXT;
+
 DROP TRIGGER IF EXISTS subscribers_updated_at ON subscribers;
 CREATE TRIGGER subscribers_updated_at
     BEFORE UPDATE ON subscribers

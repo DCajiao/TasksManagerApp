@@ -19,9 +19,15 @@
             {% if task %}Edit Task{% else %}New Task{% endif %}
         </h1>
 
-        <form method="POST"
+        <form id="task-form"
+              method="POST"
               action="{{ '/tasks/' ~ task.id ~ '/edit' if task else '/tasks/new' }}"
               class="flex flex-col gap-5">
+
+            <!-- Hidden field for AI recommendation (populated by JS) -->
+            {% if not task %}
+            <input type="hidden" id="ai_recommendation" name="ai_recommendation" value="">
+            {% endif %}
 
             <!-- Title -->
             <div>
@@ -94,6 +100,7 @@
             <!-- Submit -->
             <div class="flex items-center gap-3 pt-2">
                 <button type="submit"
+                        id="submit-btn"
                         class="px-5 py-2.5 rounded-lg text-sm font-semibold text-white
                                transition-all duration-150 hover:opacity-90 active:scale-95"
                         style="background:#6366f1;">
@@ -108,4 +115,209 @@
         </form>
     </div>
 </div>
+
+{% if not task %}
+<!-- ── AI Modal ──────────────────────────────────────────── -->
+<div id="ai-modal"
+     class="fixed inset-0 z-50 flex items-center justify-center p-4"
+     style="display:none !important; background:rgba(0,0,0,.7); backdrop-filter:blur(4px);">
+
+    <div class="w-full max-w-md rounded-2xl p-7 shadow-2xl"
+         style="background:#1a1d27; border:1px solid rgba(99,102,241,.25);">
+
+        <!-- Step 1: Ask -->
+        <div id="modal-ask">
+            <div class="flex items-center gap-3 mb-4">
+                <div class="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
+                     style="background:rgba(99,102,241,.15); border:1px solid rgba(99,102,241,.3);">
+                    <svg class="w-5 h-5" style="color:#a5b4fc;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
+                    </svg>
+                </div>
+                <div>
+                    <h2 class="text-base font-bold text-slate-100">¿Quieres una recomendación con AI?</h2>
+                    <p class="text-xs mt-0.5" style="color:#64748b;">Gemini analizará tu tarea y sugerirá cómo abordarla.</p>
+                </div>
+            </div>
+            <div class="flex gap-3 mt-6">
+                <button id="btn-get-ai"
+                        class="flex-1 py-2.5 rounded-lg text-sm font-semibold text-white transition-all duration-150 hover:opacity-90"
+                        style="background:#6366f1;">
+                    ✨ Sí, obtener recomendación
+                </button>
+                <button id="btn-skip-ai"
+                        class="px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 hover:text-slate-200"
+                        style="color:#64748b; border:1px solid rgba(255,255,255,.08);">
+                    No, guardar directamente
+                </button>
+            </div>
+        </div>
+
+        <!-- Step 2: Loading -->
+        <div id="modal-loading" style="display:none;">
+            <div class="flex flex-col items-center py-6 gap-4">
+                <div class="w-10 h-10 rounded-full border-2 border-t-transparent animate-spin"
+                     style="border-color:rgba(99,102,241,.3); border-top-color:#6366f1;"></div>
+                <p class="text-sm font-medium text-slate-300">Consultando a Gemini…</p>
+                <p class="text-xs" style="color:#475569;">Esto puede tomar unos segundos.</p>
+            </div>
+        </div>
+
+        <!-- Step 3: Result -->
+        <div id="modal-result" style="display:none;">
+            <div class="flex items-center gap-2 mb-4">
+                <svg class="w-4 h-4 flex-shrink-0" style="color:#a5b4fc;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
+                </svg>
+                <p class="text-xs font-semibold uppercase tracking-wider" style="color:#6366f1;">Recomendación de Gemini</p>
+            </div>
+            <div class="p-4 rounded-xl mb-5"
+                 style="background:#0f1117; border:1px solid rgba(99,102,241,.2);">
+                <p id="ai-result-text" class="text-sm leading-relaxed" style="color:#cbd5e1;"></p>
+            </div>
+            <div class="flex gap-3">
+                <button id="btn-save-with-ai"
+                        class="flex-1 py-2.5 rounded-lg text-sm font-semibold text-white transition-all duration-150 hover:opacity-90"
+                        style="background:#6366f1;">
+                    Guardar con recomendación
+                </button>
+                <button id="btn-save-without-ai"
+                        class="px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 hover:text-slate-200"
+                        style="color:#64748b; border:1px solid rgba(255,255,255,.08);">
+                    Guardar sin ella
+                </button>
+            </div>
+        </div>
+
+        <!-- Step 4: Error -->
+        <div id="modal-error" style="display:none;">
+            <div class="flex flex-col items-center py-4 gap-3 text-center">
+                <svg class="w-8 h-8" style="color:#f87171;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                          d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                </svg>
+                <p class="text-sm font-medium text-slate-300">No se pudo obtener la recomendación.</p>
+                <p id="error-detail" class="text-xs" style="color:#64748b;"></p>
+                <div class="flex gap-3 mt-1">
+                    <button id="btn-retry"
+                            class="px-4 py-2 rounded-lg text-sm font-medium transition-all duration-150 hover:opacity-90"
+                            style="background:rgba(99,102,241,.15); color:#a5b4fc; border:1px solid rgba(99,102,241,.3);">
+                        Reintentar
+                    </button>
+                    <button id="btn-error-skip"
+                            class="px-4 py-2 rounded-lg text-sm font-medium"
+                            style="color:#64748b;">
+                        Guardar de todas formas
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script>
+(function () {
+    const form       = document.getElementById('task-form');
+    const modal      = document.getElementById('ai-modal');
+    const askPanel   = document.getElementById('modal-ask');
+    const loadPanel  = document.getElementById('modal-loading');
+    const resultPanel= document.getElementById('modal-result');
+    const errorPanel = document.getElementById('modal-error');
+    const aiField    = document.getElementById('ai_recommendation');
+    let bypassModal  = false;
+
+    function showPanel(panel) {
+        [askPanel, loadPanel, resultPanel, errorPanel].forEach(p => p.style.display = 'none');
+        panel.style.display = 'block';
+    }
+
+    function openModal() { modal.style.setProperty('display', 'flex', 'important'); }
+    function closeModal() { modal.style.setProperty('display', 'none', 'important'); }
+
+    function submitForm(recommendation) {
+        aiField.value = recommendation || '';
+        bypassModal = true;
+        form.submit();
+    }
+
+    // Intercept submit only on new task form
+    form.addEventListener('submit', function (e) {
+        if (bypassModal) return; // already decided
+        const title = document.getElementById('title').value.trim();
+        if (!title) return; // let HTML5 validation handle it
+        e.preventDefault();
+        showPanel(askPanel);
+        openModal();
+    });
+
+    // "Sí, obtener recomendación"
+    document.getElementById('btn-get-ai').addEventListener('click', fetchAI);
+
+    // "No, guardar directamente"
+    document.getElementById('btn-skip-ai').addEventListener('click', function () {
+        closeModal();
+        submitForm('');
+    });
+
+    // "Guardar con recomendación"
+    document.getElementById('btn-save-with-ai').addEventListener('click', function () {
+        closeModal();
+        submitForm(document.getElementById('ai-result-text').textContent);
+    });
+
+    // "Guardar sin ella"
+    document.getElementById('btn-save-without-ai').addEventListener('click', function () {
+        closeModal();
+        submitForm('');
+    });
+
+    // Retry
+    document.getElementById('btn-retry').addEventListener('click', fetchAI);
+
+    // Error skip
+    document.getElementById('btn-error-skip').addEventListener('click', function () {
+        closeModal();
+        submitForm('');
+    });
+
+    // Close on backdrop click
+    modal.addEventListener('click', function (e) {
+        if (e.target === modal) {
+            closeModal();
+            submitForm('');
+        }
+    });
+
+    function fetchAI() {
+        showPanel(loadPanel);
+        const title = document.getElementById('title').value.trim();
+        const body  = document.getElementById('body').value.trim();
+
+        fetch('/tasks/ai-suggest', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ title, body }),
+        })
+        .then(function (res) { return res.json().then(function(d){ return {ok: res.ok, data: d}; }); })
+        .then(function (r) {
+            if (!r.ok || r.data.error) {
+                document.getElementById('error-detail').textContent = r.data.error || 'Error desconocido.';
+                showPanel(errorPanel);
+                return;
+            }
+            document.getElementById('ai-result-text').textContent = r.data.recommendation;
+            showPanel(resultPanel);
+        })
+        .catch(function (err) {
+            document.getElementById('error-detail').textContent = err.message;
+            showPanel(errorPanel);
+        });
+    }
+})();
+</script>
+{% endif %}
+
 {% endblock %}

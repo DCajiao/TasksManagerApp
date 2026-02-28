@@ -59,6 +59,26 @@ def _build_html(task):
           </td>
         </tr>"""
 
+    ai_block = ""
+    if task.get("ai_recommendation"):
+        ai_block = f"""
+        <tr>
+          <td style="padding:20px 0 0 0;">
+            <table width="100%" cellpadding="0" cellspacing="0" border="0"
+                   style="background:rgba(99,102,241,.08); border:1px solid rgba(99,102,241,.2); border-radius:8px;">
+              <tr>
+                <td style="padding:14px 16px;">
+                  <p style="margin:0 0 6px 0; font-size:11px; font-weight:600; letter-spacing:.08em;
+                             text-transform:uppercase; color:#6366f1;">✨ AI Recommendation</p>
+                  <p style="margin:0; font-size:14px; line-height:1.6; color:#a5b4fc;">
+                    {task['ai_recommendation']}
+                  </p>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>"""
+
     logo_tag = '<img src="cid:logo" alt="TaskFlow" width="28" height="28" style="border-radius:6px; vertical-align:middle; margin-right:8px;">'
     if not os.path.exists(LOGO_PATH):
         logo_tag = '<span style="display:inline-block;width:28px;height:28px;background:#6366f1;border-radius:6px;vertical-align:middle;margin-right:8px;"></span>'
@@ -121,6 +141,7 @@ def _build_html(task):
                 </tr>
 
                 {description_block}
+                {ai_block}
                 {reminder_block}
 
                 <!-- Divider -->
@@ -177,6 +198,8 @@ def _build_plaintext(task):
             lines.append(f"Note: {task['reminder_note']}")
     if task.get("body"):
         lines += ["", "Description:", task["body"]]
+    if task.get("ai_recommendation"):
+        lines += ["", "✨ AI Recommendation:", task["ai_recommendation"]]
     if task.get("created_at"):
         lines += ["", f"Created: {task['created_at'].strftime('%B %d, %Y at %H:%M')}"]
     return "\n".join(lines)

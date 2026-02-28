@@ -1,4 +1,6 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash
+import os
+from google import genai
+from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
 from src.db import get_db
 from src.mail import send_task_created
 
@@ -28,6 +30,40 @@ def detail(task_id):
     return render_template("tasks/detail.html", task=task)
 
 
+@tasks_bp.route("/ai-suggest", methods=["POST"])
+def ai_suggest():
+    api_key = os.getenv("GEMINI_API_KEY")
+    if not api_key:
+        return jsonify({"error": "AI not configured"}), 503
+
+    data = request.get_json(silent=True) or {}
+    title = data.get("title", "").strip()
+    body = data.get("body", "").strip()
+
+    if not title:
+        return jsonify({"error": "Title is required"}), 400
+
+    try:
+        client = genai.Client(api_key=api_key)
+
+        context = f"Title: {title}"
+        if body:
+            context += f"\nDescription: {body}"
+
+        prompt = (
+            f"Eres un asistente de productividad. Dada esta tarea:\n\n{context}\n\n"
+            "Proporcione una recomendación concisa y práctica sobre cómo abordar y completar "
+            "esta tarea de manera efectiva. Sea directo y práctico. Máximo 3 oraciones."
+        )
+
+        response = client.models.generate_content(
+            model="gemini-3-flash-preview", contents=prompt
+        )
+        return jsonify({"recommendation": response.text})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 @tasks_bp.route("/new", methods=["GET", "POST"])
 def new_task():
     if request.method == "POST":
@@ -35,6 +71,7 @@ def new_task():
         body = request.form.get("body", "").strip() or None
         reminder_at = request.form.get("reminder_at", "").strip() or None
         reminder_note = request.form.get("reminder_note", "").strip() or None
+        ai_recommendation = request.form.get("ai_recommendation", "").strip() or None
 
         if not title:
             flash("Title is required.", "error")
@@ -43,9 +80,9 @@ def new_task():
         db = get_db()
         with db.cursor() as cur:
             cur.execute(
-                """INSERT INTO tasks (title, body, reminder_at, reminder_note)
-                   VALUES (%s, %s, %s, %s) RETURNING id""",
-                (title, body, reminder_at, reminder_note),
+                """INSERT INTO tasks (title, body, reminder_at, reminder_note, ai_recommendation)
+                   VALUES (%s, %s, %s, %s, %s) RETURNING id""",
+                (title, body, reminder_at, reminder_note, ai_recommendation),
             )
             task_id = cur.fetchone()["id"]
         db.commit()
