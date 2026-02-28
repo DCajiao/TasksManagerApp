@@ -2,7 +2,7 @@ import os
 from google import genai
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
 from src.db import get_db
-from src.mail import send_task_created
+from src.mail import send_task_created, send_task_completed
 
 tasks_bp = Blueprint("tasks", __name__)
 
@@ -138,9 +138,15 @@ def toggle_task(task_id):
     db = get_db()
     with db.cursor() as cur:
         cur.execute(
-            "UPDATE tasks SET completed = NOT completed WHERE id = %s", (task_id,)
+            "UPDATE tasks SET completed = NOT completed WHERE id = %s RETURNING *",
+            (task_id,),
         )
+        task = cur.fetchone()
     db.commit()
+
+    if task and task["completed"]:
+        send_task_completed(task)
+
     return redirect(request.referrer or url_for("tasks.list_tasks"))
 
 
