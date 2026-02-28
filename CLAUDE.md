@@ -1,6 +1,6 @@
 # TasksManagerApp
 
-Flask + PostgreSQL task manager with CRUD, soft-delete (archive), email notifications, and subscriber management.
+Flask + PostgreSQL task manager with CRUD, soft-delete (archive), email notifications, subscriber management, and AI-powered task recommendations.
 
 ## Stack
 
@@ -10,6 +10,7 @@ Flask + PostgreSQL task manager with CRUD, soft-delete (archive), email notifica
 - **Config**: `python-dotenv` — credentials loaded from `.env`
 - **Frontend**: Jinja2 templates + Tailwind CSS CDN (dark mode)
 - **Email**: Flask-Mail via Gmail SMTP — HTML email with embedded logo
+- **AI**: Google Gemini (`google-genai`) via AI Studio — task recommendations
 
 ## Project Structure
 
@@ -23,23 +24,24 @@ TasksManagerApp/
 └── src/
     ├── app.py                   # Flask app factory (create_app)
     ├── db.py                    # psycopg2 helpers: get_db, close_db, init_db
-    ├── mail.py                  # Flask-Mail setup + send_task_created()
+    ├── mail.py                  # Flask-Mail setup + send_task_created() + send_task_completed()
     ├── blueprints/
-    │   ├── tasks.py             # /tasks CRUD routes + /tasks/archived
+    │   ├── tasks.py             # /tasks CRUD + /tasks/archived + /tasks/ai-suggest
     │   ├── reminders.py         # /reminders list route
     │   └── subscribers.py       # /subscribers CRUD routes
     ├── sql/
     │   └── schema.sql           # Idempotent schema + updated_at triggers
     ├── static/
     │   └── assets/img/
-    │       └── logo_raw.png     # Logo embedded in emails
+    │       ├── logo_raw.png     # Logo embedded in emails
+    │       └── giphy.gif        # Loading gif shown in AI modal
     └── templates/
         ├── base.html            # Sidebar layout, flash messages
         ├── tasks/
         │   ├── list.html
         │   ├── archived.html
         │   ├── detail.html
-        │   └── form.html
+        │   └── form.html        # Includes AI recommendation modal + JS
         ├── reminders/
         │   └── list.html
         ├── subscribers/
@@ -75,11 +77,12 @@ docker compose down -v
 | GET | `/` | Redirects to `/tasks` |
 | GET | `/tasks` | List active tasks |
 | GET | `/tasks/new` | New task form |
-| POST | `/tasks/new` | Create task + send email to active subscribers |
+| POST | `/tasks/new` | Create task + send creation email to active subscribers |
 | GET | `/tasks/<id>` | Task detail |
 | GET | `/tasks/<id>/edit` | Edit form |
 | POST | `/tasks/<id>/edit` | Update task |
-| POST | `/tasks/<id>/toggle` | Toggle completed |
+| POST | `/tasks/<id>/toggle` | Toggle completed + send completion email if marked done |
+| POST | `/tasks/ai-suggest` | Call Gemini and return AI recommendation (JSON) |
 | POST | `/tasks/<id>/archive` | Soft-delete (archive) |
 | GET | `/tasks/archived` | List archived tasks |
 | POST | `/tasks/<id>/unarchive` | Restore archived task |
@@ -98,6 +101,8 @@ docker compose down -v
 - **Schema init at startup**: `init_db()` runs `schema.sql` every time (idempotent). If DB is unreachable, logs a warning and continues.
 - **DB error handling**: `psycopg2.OperationalError` is caught globally and renders a 503 page instead of crashing.
 - **Subscribers over hardcoded recipients**: notification targets live in the `subscribers` table, managed from the UI. No emails in `.env`.
-- **HTML email**: `send_task_created()` sends a styled HTML email with the app logo embedded as a CID inline attachment, plus a plain-text fallback.
-- **Email is optional**: if `MAIL_USERNAME` is not set, `send_task_created()` returns early without errors.
+- **Two email triggers**: creation (`send_task_created`) and completion (`send_task_completed`). Both use a shared `_send()` helper. HTML + plain-text fallback with CID-embedded logo.
+- **Email is optional**: if `MAIL_USERNAME` is not set, all notification functions return early without errors.
+- **AI recommendation flow**: on new task submission, a JS modal intercepts and asks whether to fetch a Gemini recommendation. The result is stored in `ai_recommendation` (TEXT column), shown in the detail view and included in the creation email. The modal shows `giphy.gif` while waiting for the model response.
+- **AI is optional**: if `GEMINI_API_KEY` is not set, the `/tasks/ai-suggest` endpoint returns 503; the modal handles it with an error state and lets the user save anyway.
 - **`.env` must not be committed**: already in `.gitignore`.
