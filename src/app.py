@@ -1,6 +1,6 @@
 import os
 import psycopg2
-from flask import Flask, render_template
+from flask import Flask, render_template, jsonify
 from dotenv import load_dotenv
 from src.db import close_db, init_db
 from src.mail import init_mail
@@ -28,6 +28,17 @@ def create_app():
     def index():
         from flask import redirect, url_for
         return redirect(url_for("tasks.list_tasks"))
+
+    @app.route("/health")
+    def health():
+        from src.db import get_db
+        try:
+            db = get_db()
+            with db.cursor() as cur:
+                cur.execute("SELECT 1")
+            return jsonify({"status": "ok"}), 200
+        except Exception:
+            return jsonify({"status": "db_unavailable"}), 503
 
     @app.errorhandler(psycopg2.OperationalError)
     def handle_db_down(e):
